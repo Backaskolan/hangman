@@ -5,6 +5,9 @@ import random
 with open('words.ini', 'r') as f:
 	words = [w.strip() for w in f.readlines()]
 
+heart = u'\u2665'
+
+
 def setup(words):
 	word = random.choice(words)
 	shadow = '*'*len(word)
@@ -12,28 +15,26 @@ def setup(words):
 	main_loop(word, lives, shadow)
 	
 def main_loop(word, lives, shadow):
-	while True:
-		if '*' in shadow:
-			print(shadow)
-			guess = input('Gissa bokstav: ')
-			check = check_for_character(guess, word)
-			if not check:
-				try:
-					print('{} liv kvar'.format(next(lives)))
-				except StopIteration:
-					print('Game over.')
-					break
-			else:
-				print('{} finns.'.format(guess))
-				for i in check:
-					shadow = shadow[:i] + guess + shadow[i+1:]
-		else:
-			print('Ordet var {}'.format(word))
-			if input('Spela igen? (j)') == 'j':
-				setup(words)
-			else:
+	while '*' in shadow:
+		print(shadow)
+		guess = input('Gissa bokstav: ')
+		check = check_for_character(guess, word)
+		if not check:
+			try:
+				print('{} liv kvar'.format(heart*next(lives)))
+			except StopIteration:
+				print('Game over.\n')
 				break
+		else:
+			print('{} finns.'.format(guess))
+			for i in check:
+				shadow = shadow[:i] + guess + shadow[i+1:]
 	
+	if input('Ordet var {}.\nSpela igen? (j) '.format(word)) == 'j':
+		setup(words)
+	else:
+		exit()
+
 def check_for_character(c, word):
 	indices = []
 	if c in word:
