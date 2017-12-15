@@ -1,78 +1,112 @@
 #!/usr/bin/env python3
 
 import random
+import json
 
-with open('words.ini', 'r') as f:
-	words = [w.strip() for w in f.readlines()]
-# Hämta alla ord i filen words.ini och stoppa in dem i listan words
+heart = u'\u2665' # Unicode för hjärtsymbol
 
-heart = u'\u2665' 
-# Unicode för hjärtsymbol
-
-def setup(words):
-	word = random.choice(words)
-	# Plocka ett slumpmässigt ord ur words
-	shadow = '*'*len(word)
-	# Skriv så många * som det finns bokstäver i word
-	lives = reversed(range(1, 5))
-	# Räkna ned från 5
-	main_loop(word, lives, shadow)
-	# Kör funktionen main_loop()
+class HangmanGame:
+	def __init__(self):
+		print('*** HÄNGA GUBBEN ***')
+		with open('config.json', 'r') as f:
+			self.cfg = json.load(f)
+		with open('words.ini', 'r') as f:
+			self.words = [w.strip() for w in f.readlines()]
+		with open('scores.json', 'r') as f:
+			self.scores = json.load(f)
+		self.lives = reversed(range(1, int(self.cfg['lives'])))
+		self.player_name = input('Namn: ')
+		self.game_round = 0
 	
-def main_loop(word, lives, shadow):
-	while '*' in shadow:
-	# Så länge det finns * kvar i shadow
-		print(shadow)
-		# Skriv ut shadow
-		guess = input('Gissa bokstav: ')
-		# Innehållet i variabeln guess blir spelarens gissning
-		check = check_for_character(guess, word)
-		# check blir resultatet av funktionen check_for_character(), det vill säga False om gissningen är fel, annars en lista med var i strängen gissningen finns.
-		if not check:
-		# Om check är False
-			try:
-			# Försök skriva ut hur många liv som är kvar
-				print('{} liv kvar'.format(heart*next(lives)))
-				# next() räknar ner liven från 5 till 1
-			except StopIteration:
-			# Om det inte finns några liv kvar
-				print('Game over.\n')
-				# \n skriver en ny rad
-				break
-				# Spelet slut, hoppa ut ur loopen
+	def get_action(self):
+		action = input('(s)pela | (i)nställningar | (h)ighscores | (a)vsluta\n')
+		self.actionhandler(action)()
+
+	def actionhandler(self, action):
+		actions = {
+			's': self.main_loop,
+			'i': self.edit_config,
+			'h': self.show_highscores,
+			'a': self.quit_game,
+			'': self.get_action
+		}
+
+		return actions.get(action)
+
+	def main_loop(self):
+		self.word = random.choice(self.words)
+		shadow = '*'*len(self.word)
+		self.game_round = self.game_round + 1
+		print('Runda {}'.format(self.game_round))
+		while '*' in shadow:
+			print(shadow)
+			self.guess = input('Gissa bokstav: ')
+			check = self.check_for_character()
+			if not check:
+				try:
+					print('{} liv kvar'.format(heart*next(self.lives)))
+				except StopIteration:
+					print('Game over.\n')
+					self.save_scores()
+			else:
+				print('{} finns.'.format(self.guess))
+				for i in check:
+					shadow = shadow[:i] + self.guess + shadow[i+1:]
+
+		self.play_again()
+		
+	def play_again(self):
+		if input('Ordet var {}.\nSpela igen? (j) '.format(self.word)) == 'j':
+			self.main_loop()
 		else:
-		# Om check inte är False är det en lista med index som talar om var i strängen gissningen finns
-			print('{} finns.'.format(guess))
-			# Skriv att gissningen finns
-			for i in check:
-			# För varje index i check
-				shadow = shadow[:i] + guess + shadow[i+1:]
-				# Byt ut * mot den gissade bokstaven i shadow
-	
-	# Spela igen?
-	if input('Ordet var {}.\nSpela igen? (j) '.format(word)) == 'j':
-		setup(words)
-	else:
+			self.save_scores()
+
+	def check_for_character(self):
+		indices = []
+		if self.guess in self.word:
+			for i, a in enumerate(self.word):
+				if a == self.guess:
+					indices.append(i)
+			return indices
+		else:
+			print('{} finns inte'.format(self.guess))
+			return False
+
+	def save_scores(self):	
+		self.scores.append({'player_name': self.player_name, 'highest_round': self.game_round, 'lives': self.cfg['lives'], 'difficulty': self.cfg['difficulty']})
+			
+		with open('scores.json', 'w') as f:
+			json.dump(self.scores, f)
+		print('Sparade resultat.')
+		self.get_action()
+
+	def edit_config(self):
+		print('Skriv inställning värde')
+		for k, v in self.cfg.items():
+			print('{}: {}'.format(k, v))
+		c = input().split(' ')
+		try:
+			self.cfg[c[0]] = c[1]
+			if input('Ändrade {} till {}. \nSpara ändringar? (j/N)'.format(c[0], c[1])) == 'j':
+				with open('config.json', 'w') as f:
+					json.dump(self.cfg, f)
+				print('Sparade ändringarna.')
+			else:
+				print('Okej, ändringarna gäller bara för den här gången.')
+		except IndexError:
+			print('Avbrutet.')
+		self.get_action()
+
+	def show_highscores(self):
+		print('Namn\tHögsta runda\tAntal liv\tSvårighetsgrad')
+		for r in self.scores:
+			print('{}\t\t{}\t\t{}\t\t{}'.format(r['player_name'], r['highest_round'], r['lives'], r['difficulty']))
+		self.get_action()
+
+	def quit_game(self):
+		print('Tack för att du spelade!')
 		exit()
 
-def check_for_character(guess, word):
-	indices = []
-	# Gör en tom lista att samla index i
-	if guess in word:
-	# Om gissningen guess finns i strängen word
-		for i, a in enumerate(word):
-		# Loopa igenom strängen word. enumerate() gör att Python räknar varje runda av loopen i variabeln i. a är bokstaven i just den här rundan (första bokstaven i första rundan, och så vidare).	
-			if a == guess:
-			# Om den gissade bokstaven finns på den här platsen i strängen
-				indices.append(i)
-				# Lägg till bokstavens index i listan med index
-		return indices
-		# Ge tillbaka listan med index
-	else:
-	# Om gissningen inte finns i strängen word
-		print('{} finns inte'.format(guess))
-		return False
-		# Ge tillbaka False, vilket vi använder i main_loop() för att kolla om gissningen stämmer
-
 if __name__ == '__main__':
-	setup(words)
+	game = HangmanGame()
+	game.get_action()
