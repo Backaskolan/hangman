@@ -20,6 +20,7 @@ class HangmanGame:
 	
 	def get_action(self):
 		action = input('(s)pela | (i)nställningar | (h)ighscores | (a)vsluta\n')
+		
 		self.actionhandler(action)()
 
 	def actionhandler(self, action):
@@ -31,7 +32,11 @@ class HangmanGame:
 			'': self.get_action
 		}
 
-		return actions.get(action)
+		if action in actions.keys():		
+			return actions.get(action)
+
+		print('Ogiltigt val!')
+		return self.get_action
 
 	def main_loop(self):
 		self.word = random.choice(self.words)
@@ -48,6 +53,10 @@ class HangmanGame:
 				except StopIteration:
 					print(f'Game over.\nOrdet var {self.word}.\n')
 					self.save_scores()
+			elif check == 'empty':
+				print('Nånting får du gissa på.')
+			elif check == 'multiple':
+				print('Du kan bara gissa på en bokstav i taget.')
 			else:
 				print('{} finns.'.format(self.guess))
 				for i in check:
@@ -56,12 +65,17 @@ class HangmanGame:
 		self.play_again()
 		
 	def play_again(self):
-		if input('Ordet var {}.\nSpela igen? (j) '.format(self.word)) == 'j':
+		choice = input('Ordet var {}.\nSpela igen? (j) '.format(self.word)) 
+		if choice == 'j' or choice == '':
 			self.main_loop()
 		else:
 			self.save_scores()
 
 	def check_for_character(self):
+		if len(self.guess) > 1:
+			return 'multiple'
+		elif self.guess == '':
+			return 'empty'
 		indices = []
 		if self.guess in self.word:
 			for i, a in enumerate(self.word):
@@ -81,7 +95,7 @@ class HangmanGame:
 		self.get_action()
 
 	def edit_config(self):
-		print('Skriv inställning värde')
+		print('Skriv inställning värde\ndifficulty easy/hard\nlives (1-inf)')
 		for k, v in self.cfg.items():
 			print('{}: {}'.format(k, v))
 		c = input().split(' ')
@@ -99,14 +113,13 @@ class HangmanGame:
 
 	def show_highscores(self):
 		print('Namn\tHögsta runda\tAntal liv\tSvårighetsgrad')
-		for r in self.scores:
+		for r in sorted(self.scores, key=lambda t: t['highest_round'], reverse=True):
 			print('{}\t\t{}\t\t{}\t\t{}'.format(r['player_name'], r['highest_round'], r['lives'], r['difficulty']))
 		self.get_action()
 
 	def quit_game(self):
 		print('Tack för att du spelade!')
-		exit()
-
+		
 if __name__ == '__main__':
 	game = HangmanGame()
 	game.get_action()
