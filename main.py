@@ -53,6 +53,7 @@ class HangmanGame:
 				except StopIteration:
 					print(f'Game over.\nOrdet var {self.word}.\n')
 					self.save_scores()
+					self.play_again()
 			elif check == 'empty':
 				print('Nånting får du gissa på.')
 			elif check == 'multiple':
@@ -62,14 +63,23 @@ class HangmanGame:
 				for i in check:
 					shadow = shadow[:i] + self.guess + shadow[i+1:]
 
-		self.play_again()
+		self.save_scores()
+		self.next_round()
 		
 	def play_again(self):
-		choice = input('Ordet var {}.\nSpela igen? (j) '.format(self.word)) 
+		choice = input('Spela igen? (j)')
+		if choice == 'j' or choice == '':
+			self.__init__()
+			self.main_loop()
+		else:
+			self.quit_game()
+
+	def next_round(self):
+		choice = input('Fortsätt till nästa runda? (j)') 
 		if choice == 'j' or choice == '':
 			self.main_loop()
 		else:
-			self.save_scores()
+			self.get_action()
 
 	def check_for_character(self):
 		if len(self.guess) > 1:
@@ -92,7 +102,7 @@ class HangmanGame:
 		with open('scores.json', 'w') as f:
 			json.dump(self.scores, f)
 		print('Sparade resultat.')
-		self.get_action()
+		# self.get_action()
 
 	def edit_config(self):
 		print('Skriv inställning värde\ndifficulty easy/hard\nlives (1-inf)')
