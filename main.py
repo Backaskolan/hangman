@@ -46,7 +46,7 @@ class HangmanGame:
 				try:
 					print('{} liv kvar'.format(heart*next(self.lives)))
 				except StopIteration:
-					print('Game over.\n')
+					print(f'Game over.\nOrdet var {self.word}.\n')
 					self.save_scores()
 			else:
 				print('{} finns.'.format(self.guess))
